@@ -1,0 +1,65 @@
+template: true   # required for local templates
+valuesFilePath: ./values.yml
+
+resources:
+  - name: Open_PullRequest
+    type: GitRepo
+    configuration:
+      gitProvider: {{ .Values.myRepo.gitProvider }}
+      path: {{ .Values.myRepo.path }}
+      branches:
+        include: main
+      buildOn:
+        commit:                false
+        pullRequestCreate:     true
+
+  - name: Close_PullRequest
+    type: GitRepo
+    configuration:
+      gitProvider: {{ .Values.myRepo.gitProvider }}
+      path: {{ .Values.myRepo.path }}
+      branches:
+        include: main
+      buildOn:
+        commit:                false
+        pullRequestClose:      true
+             
+pipelines:
+  - name: Terraform_Open_PR
+    steps:
+      - name: terraform_plan
+        type: Bash
+        configuration:
+          inputResources:
+            - name: Open_PullRequest
+          integrations:
+            - name: AWSAccess            
+        execution:
+          onExecute:
+            - export AWS_DEFAULT_REGION="us-west-1"
+            - env
+            - aws sts get-caller-identity
+            - cd ${res_Open_PullRequest_resourcePath}
+            - terraform init
+            - terraform validate
+            - terraform plan
+  - name: Terraform_Closed_PR
+    steps:
+      - name: terraform_apply
+        type: Bash
+        configuration:
+          inputResources:
+            - name: Close_PullRequest
+          integrations:
+            - name: AWSAccess            
+        execution:
+          onExecute:
+            - export AWS_DEFAULT_REGION="us-west-1"
+            - env
+            - aws sts get-caller-identity
+            - cd ${res_Close_PullRequest_resourcePath}
+            - terraform init
+            - terraform validate
+            - terraform plan
+            - terraform apply --auto-approve
+            

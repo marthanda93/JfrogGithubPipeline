@@ -1,0 +1,5 @@
+myRepo:
+  gitProvider: GitCreds
+  awsprovider: AWSAccess
+  path: <NAME>/JFrog_Pipeline
+
